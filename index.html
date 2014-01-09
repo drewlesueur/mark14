@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+<head>
+<title>I Spy Volleyball</title>
+<style>
+* {
+  font-family: Helvetica;
+  margin: 0px;
+  padding: 0px;
+}
+#textarea {
+  border: 1px solid blac;
+  width: 100%;
+  height: 300px;
+  font-size: 20px;
+  font-family: monospace;
+}
+</style>
+<meta name = "viewport" content = "width = device-width, initial-scale=1, user-scalable=yes">
+</head>
+<body>
+<textarea id=textarea></textarea>
+<input type="button" value="Run" onclick="runCodeDom()"><br />
+<canvas id=canvas></canvas>
+<script>
+var canvasEl = document.getElementById("canvas")
+var textareaEl = document.getElementById("textarea")
+var runCodeDom = function () {
+  var code = textareaEl.value 
+  return runCode(code)
+}
+
+var commands = {
+  handle_line: function (line, scope) {
+    var firstSpace = line.indexOf(" ")
+    if (firstSpace == -1) {
+      firstSpace = line.length
+    }
+    var command_name = line.slice(0, firstSpace)
+    var command = commands[command_name]
+    if (!command) return null;
+    if (command.is_custom) {
+    
+    } else {
+      var rest = line.slice(firstSpace + 1)
+      command(rest, scope) 
+    }
+  
+  },
+  set: function (line, scope) { //raw
+    var words = line.split(" ")
+    var key = words[0]
+    var value = words[1]
+    commands.set_cooked(key, value, scope, scope) 
+  },
+  set_cooked: function (key, value, scope, original_scope) {
+    if (!original_scope) {
+      original_scope = scope
+    }
+    if (key in scope) {
+      scope[key] = value  
+    } else if (scope.parent_scope) {
+      return commands.set_cooked(key, value, parent_scope, original_scope) 
+    } else {
+      original_scope[key] = value
+    }
+  },
+  get_cooked: function (key, scope) {
+    if (key in scope) {
+      return scope[key]
+    } else if (scope.parent_scope){
+      return commands.get_cooked(key, parent_scope)  
+    } else {
+      return null;
+    }
+  }
+}
+
+var runCode = function (code, scope) {
+  scope = scope || {}
+  lines = code.split("\n")
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i]
+    commands.handle_line(line, scope)
+  }
+  console.log(scope)
+}
+
+
+
+</script>
+</body>
+</html>
+
