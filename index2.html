@@ -84,21 +84,22 @@ var runCode = function (code, scope) {
   scope = scope || {}
   scope.__i = 0
   var lines = code.split("\n")
-  var len = lines.length
   var new_lines = []
   for (var i = 0; i < lines.length; i++) {
-    new_lines.push(lines[i].split(" ")) 
+    var line = lines[i].split(" ")
+    var command = commands[line[0]]
+    if (command) {
+      line[0] = command
+      new_lines.push(line) 
+    }
   }
   lines = new_lines;
+  var len = lines.length
   while (true) {
     var line = lines[scope.__i]
     var command = line[0]
-    if (command) {
-      var ret = commands[command](line, scope)
-      scope.it = ret
-    } else {
-
-    }
+    var ret = command(line, scope)
+    scope.it = ret
     scope.__i += 1 
     if (scope.__i === len) {
       break    
