@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head>
+<title>mark14.5</title>
+<style>
+* {
+  font-family: Helvetica;
+  margin: 0px;
+  padding: 0px;
+}
+#textarea {
+  border: 1px solid blac;
+  width: 100%;
+  height: 300px;
+  font-size: 20px;
+  font-family: monospace;
+}
+</style>
+<meta name = "viewport" content = "width = device-width, initial-scale=1, user-scalable=yes">
+</head>
+<body>
+<textarea id=textarea>
+setn x 0
+label my_loop
+incr x
+setn endx 1000000
+eq x endx
+as my_cond
+if_false_goto my_cond my_loop
+say x
+say my_loop
+</textarea>
+<input type="button" value="Run" onclick="runCodeDom()"><br />
+<canvas id=canvas></canvas>
+<script>
+var canvasEl = document.getElementById("canvas")
+var textareaEl = document.getElementById("textarea")
+var runCodeDom = function () {
+  var code = textareaEl.value 
+  return runCode(code)
+}
+
+
+
+// todo: set scope.scope = scope
+// todo: maybe make an env = {scope: scope, i: i, lines: lines} + "?"
+var commands = {
+  set: function (args, scope) {
+    y = scope[args.b]
+    scope[args.a] = y 
+  },
+  setn: function (args, scope) {
+    y = args.b - 0
+    scope[args.a] = y
+  },
+  debugger: function () {
+    debugger 
+  },
+  eq: function (args, scope) {
+    return scope[args.a] == scope[args.b] 
+  },
+  label: function (args, scope) {
+    scope[args.a] = scope.__i 
+  },
+  incr: function (args, scope) {
+    scope[args.a] += 1
+  },
+  as: function (args, scope) {
+    scope[args.a] = scope.it 
+  },
+  say: function (args, scope) {
+    console.log(scope[args.a]) 
+  },
+  if_false_goto: function (args, scope) {
+    if (scope[args.a]) {
+    
+    } else {
+      scope.__i = 1//scope[args.b]
+    } 
+  }
+
+}
+var runCode = function (code, scope) {
+  scope = scope || {}
+  scope.__i = 0
+  var lines = code.split("\n")
+  var len = lines.length
+  while (true) {
+    var line = lines[scope.__i]
+    var args_list = line.split(" ")
+    var command = args_list[0]
+    if (command) {
+      args = {
+        a: args_list[1],
+        b: args_list[2],
+        c: args_list[3]
+      }
+      var ret = commands[command](args, scope)
+      scope.it = ret
+    } else {
+
+    }
+    scope.__i += 1 
+    if (scope.__i === lines.length) {
+      break    
+    }
+  } 
+}
+
+
+
+</script>
+</body>
+</html>
+
