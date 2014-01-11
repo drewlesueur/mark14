@@ -21,9 +21,9 @@
 <body>
 <textarea id=textarea>
 setn x 0
+setn endx 1000000
 label my_loop
 incr x
-setn endx 1000000
 eq x endx
 as my_cond
 if_false_goto my_cond my_loop
@@ -46,36 +46,36 @@ var runCodeDom = function () {
 // todo: maybe make an env = {scope: scope, i: i, lines: lines} + "?"
 var commands = {
   set: function (args, scope) {
-    y = scope[args.b]
-    scope[args.a] = y 
+    y = scope[args[2]]
+    scope[args[1]] = y 
   },
   setn: function (args, scope) {
-    y = args.b - 0
-    scope[args.a] = y
+    y = args[2] - 0
+    scope[args[1]] = y
   },
   debugger: function () {
     debugger 
   },
   eq: function (args, scope) {
-    return scope[args.a] == scope[args.b] 
+    return scope[args[1]] == scope[args[2]] 
   },
   label: function (args, scope) {
-    scope[args.a] = scope.__i 
+    scope[args[1]] = scope.__i 
   },
   incr: function (args, scope) {
-    scope[args.a] += 1
+    scope[args[1]] += 1
   },
   as: function (args, scope) {
-    scope[args.a] = scope.it 
+    scope[args[1]] = scope.it 
   },
   say: function (args, scope) {
-    console.log(scope[args.a]) 
+    console.log(scope[args[1]]) 
   },
   if_false_goto: function (args, scope) {
-    if (scope[args.a]) {
+    if (scope[args[1]]) {
     
     } else {
-      scope.__i = 1//scope[args.b]
+      scope.__i = scope[args[2]]
     } 
   }
 
@@ -85,23 +85,22 @@ var runCode = function (code, scope) {
   scope.__i = 0
   var lines = code.split("\n")
   var len = lines.length
+  var new_lines = []
+  for (var i = 0; i < lines.length; i++) {
+    new_lines.push(lines[i].split(" ")) 
+  }
+  lines = new_lines;
   while (true) {
     var line = lines[scope.__i]
-    var args_list = line.split(" ")
-    var command = args_list[0]
+    var command = line[0]
     if (command) {
-      args = {
-        a: args_list[1],
-        b: args_list[2],
-        c: args_list[3]
-      }
-      var ret = commands[command](args, scope)
+      var ret = commands[command](line, scope)
       scope.it = ret
     } else {
 
     }
     scope.__i += 1 
-    if (scope.__i === lines.length) {
+    if (scope.__i === len) {
       break    
     }
   } 
