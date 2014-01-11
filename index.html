@@ -22,10 +22,23 @@
 <textarea id=textarea>
 set name drew
 set age 29
-start_list apples
+list apples
    fuji
 mac
 end
+
+scope bear
+  set name twinkle
+  set type toy
+end
+
+msg intro Hello my name is Drew LeSueur
+
+hash bear2
+name sunshine
+paws 4
+end
+
 
 </textarea>
 <input type="button" value="Run" onclick="runCodeDom()"><br />
@@ -39,18 +52,28 @@ var runCodeDom = function () {
 }
 
 var commands = {
-  handle_normal_line: function (line, glbl) {
+  get_first_word_and_rest: function (line) {
     var firstSpace = line.indexOf(" ")
     if (firstSpace == -1) {
       firstSpace = line.length
     }
-    var command_name = line.slice(0, firstSpace)
+    var first = line.slice(0, firstSpace)
+    var rest = line.slice(firstSpace + 1)
+    return {
+      first: first,
+      rest: rest
+    }
+  },
+  handle_normal_line: function (line, glbl) {
+    line = line.trim()
+    var first_and_rest = commands.get_first_word_and_rest(line)
+    var command_name = first_and_rest.first
+    var rest = first_and_rest.rest    
     var command = commands[command_name]
     if (!command) return null;
     if (command.is_custom) {
     
     } else {
-      var rest = line.slice(firstSpace + 1)
       var ret = command(rest, glbl) 
       return ret  
     }
@@ -63,11 +86,38 @@ var commands = {
       glbl.scope.__current_list.push(commands.get_cooked(line.trim(), glbl.scope))
     }
   },
-  start_list: function (line, glbl) {
+  parse_line: function (words) {
+    return words.split(" ") //for now
+  },
+  msg: function (line, glbl) {
+    var first_and_rest = commands.get_first_word_and_rest(line)     
+    glbl.scope[first_and_rest.first] = first_and_rest.rest
+  },
+  handle_hash: function (line, glbl) {
+    if (line.trim() == "end") {
+      commands.handle_line = commands.handle_normal_line
+      delete glbl.scope.__current_hash
+    } else {
+      line = line.trim()
+      var words = commands.parse_line(line)
+      var key = words[0]
+      var value = words[1]
+      var value = commands.get_cooked(value, glbl.scope)
+      glbl.scope.__current_hash[key] = value
+    }
+  },
+  list: function (line, glbl) {
     var list = []
     glbl.scope[line] = list
     glbl.scope.__current_list = list
     commands.handle_line = commands.handle_list
+  },
+  // idea: certain type of list where you can have nested things
+  hash: function (line, glbl) {
+    var hash = {}
+    glbl.scope[line] = hash
+    glbl.scope.__current_hash = hash
+    commands.handle_line = commands.handle_hash
   },
   "end": function (line, glbl) {
     if (glbl.scope.parent_scope) {
@@ -76,7 +126,7 @@ var commands = {
       //nothing
     }
   },
-  start_scope: function (line, glbl) {
+  scope: function (line, glbl) {
     var new_scope = {}
     glbl.scope[line] = new_scope
     new_scope.parent_scope = glbl.scope
