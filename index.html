@@ -34,6 +34,17 @@ end
 
 msg intro Hello my name is Drew LeSueur
 
+msgl bio :)
+this is my bio
+it is pretty long
+what do you thing of it
+end :)
+
+  msgl bio2 :o)
+    this is my bio2.
+    not quite as long
+  end :o)
+
 hash bear2
 name sunshine
 paws 4
@@ -65,7 +76,9 @@ var commands = {
     }
   },
   handle_normal_line: function (line, glbl) {
+    glbl.raw_line = line
     line = line.trim()
+    
     var first_and_rest = commands.get_first_word_and_rest(line)
     var command_name = first_and_rest.first
     var rest = first_and_rest.rest    
@@ -89,10 +102,6 @@ var commands = {
   parse_line: function (words) {
     return words.split(" ") //for now
   },
-  msg: function (line, glbl) {
-    var first_and_rest = commands.get_first_word_and_rest(line)     
-    glbl.scope[first_and_rest.first] = first_and_rest.rest
-  },
   handle_hash: function (line, glbl) {
     if (line.trim() == "end") {
       commands.handle_line = commands.handle_normal_line
@@ -105,6 +114,50 @@ var commands = {
       var value = commands.get_cooked(value, glbl.scope)
       glbl.scope.__current_hash[key] = value
     }
+  },
+  get_indent_count: function (line) { //my "indent" "mark8" project
+    var ic = 0
+    var line_len = line.length
+    while (ic < line_len) {
+      if (line.substr(ic,1) == " ") { ic++ } else { break }
+    }
+    return ic
+  },
+  handle_string: function (line, glbl) {
+    if (line.trim() == "end " + glbl.scope.__special_text) {
+      commands.handle_line = commands.handle_normal_line
+      glbl.scope[glbl.scope.__current_string_name] = glbl.scope.__current_string_group.join("\n")
+      delete glbl.scope.__special_text
+      delete glbl.scope.__current_string_group
+      delete glbl.scope.__current_string_name
+      delete glbl.scope.__indent_count
+      delete glbl.scope.__got_indent_count
+    } else {
+      if (glbl.scope.__got_indent_count) {
+        if (glbl.scope.__indent_count) {
+          line = line.slice(glbl.scope.__indent_count)
+        }
+      } else {
+        glbl.scope.__indent_count = commands.get_indent_count(line)
+        glbl.scope.__got_indent_count = true
+        line = line.slice(glbl.scope.__indent_count)
+      }
+      glbl.scope.__current_string_group.push(line)
+    }
+  },
+  msg: function (line, glbl) {
+    var first_and_rest = commands.get_first_word_and_rest(line)     
+    glbl.scope[first_and_rest.first] = first_and_rest.rest
+  },
+  msgl: function (line, glbl) {
+    
+    var first_and_rest = commands.get_first_word_and_rest(line)     
+    var name = first_and_rest.first
+    var special_text = first_and_rest.rest
+    glbl.scope.__special_text = special_text
+    glbl.scope.__current_string_group = []
+    glbl.scope.__current_string_name = name
+    commands.handle_line = commands.handle_string
   },
   list: function (line, glbl) {
     var list = []
