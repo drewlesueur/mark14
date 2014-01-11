@@ -79,14 +79,20 @@ var commands = {
   start_scope: function (line, glbl) {
     var new_scope = {}
     glbl.scope[line] = new_scope
-    new_scope.parent_scope = scope
+    new_scope.parent_scope = glbl.scope
     glbl.scope = new_scope
   },
   set: function (line, glbl) { //raw
     var words = line.split(" ")
     var key = words[0]
-    var value = words[1]
+    var value = commands.get_cooked(words[1], glbl.scope)
     commands.set_cooked(key, value, glbl.scope, glbl.scope) 
+  },
+  setl: function (line, glbl) { //raw
+    var words = line.split(" ")
+    var key = words[0]
+    var value = commands.get_cooked(words[1], glbl.scope)
+    commands.setl_cooked(key, value, glbl.scope, glbl.scope) 
   },
   set_cooked: function (key, value, scope, original_scope) {
     if (!original_scope) {
@@ -95,16 +101,19 @@ var commands = {
     if (key in scope) {
       scope[key] = value  
     } else if (scope.parent_scope) {
-      return commands.set_cooked(key, value, parent_scope, original_scope) 
+      return commands.set_cooked(key, value, scope.parent_scope, original_scope) 
     } else {
       original_scope[key] = value
     }
+  },
+  setl_cooked: function (key, value, scope, original_scope) {
+    scope[key] = value  
   },
   get_cooked: function (key, scope) {
     if (key in scope) {
       return scope[key]
     } else if (scope.parent_scope){
-      return commands.get_cooked(key, parent_scope)  
+      return commands.get_cooked(key, scope.parent_scope)  
     } else {
       return key;
     }
