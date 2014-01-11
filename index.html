@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-<title>I Spy Volleyball</title>
+<title>mark14</title>
 <style>
 * {
   font-family: Helvetica;
@@ -50,11 +50,39 @@ name sunshine
 paws 4
 end
 
+func greet name
+cat name !
+end
+
+set fav-cereal :captain-crunch
+
+cat name age
+set newstr it
+
+cat name age
+as newstr2
+
+set x 0
+label my_loop
+incr x
+eq x 1000000
+as my_cond
+if_false_goto my_cond my_loop
+
+say done
+say x
 
 </textarea>
 <input type="button" value="Run" onclick="runCodeDom()"><br />
 <canvas id=canvas></canvas>
 <script>
+/*
+todo:
+inline lists and hashes
+funcs
+nested lists and hashed taking advantage of just a new scope and mayby the last "it" for lists
+
+*/
 var canvasEl = document.getElementById("canvas")
 var textareaEl = document.getElementById("textarea")
 var runCodeDom = function () {
@@ -78,16 +106,24 @@ var commands = {
   handle_normal_line: function (line, glbl) {
     glbl.raw_line = line
     line = line.trim()
-    
+
+    // idea: cat x y z as the_result
     var first_and_rest = commands.get_first_word_and_rest(line)
     var command_name = first_and_rest.first
     var rest = first_and_rest.rest    
     var command = commands[command_name]
-    if (!command) return null;
-    if (command.is_custom) {
+    if (!command_name) {
+
+    } else if (!command) {
+      var user_command = commands.get_cooked(command, glbl.scope)
+      if (user_command.type == "func") {
+         
+      }
+    } else if (command.is_custom) {
     
     } else {
       var ret = command(rest, glbl) 
+      glbl.scope.it = ret
       return ret  
     }
   },
@@ -99,6 +135,15 @@ var commands = {
       glbl.scope.__current_list.push(commands.get_cooked(line.trim(), glbl.scope))
     }
   },
+  handle_func: function (line, glbl) {
+    if (line.trim() == "end") {
+      commands.handle_line = commands.handle_normal_line
+      delete glbl.scope.__current_func
+    } else {
+      glbl.scope.__current_func.body.push(line)
+    }
+  },
+
   parse_line: function (words) {
     return words.split(" ") //for now
   },
@@ -159,11 +204,82 @@ var commands = {
     glbl.scope.__current_string_name = name
     commands.handle_line = commands.handle_string
   },
+  goto: function (line, glbl) {
+    //glbl.scope.__i = commands.parse_and_get(line, glbl)[0] 
+  },
+  eq: function (line, glbl) {
+    var args = commands.parse_and_get(line, glbl) 
+    return args[0] == args[1]
+  },
+  if_true_goto: function (line, glbl) {
+    var args = commands.parse_and_get(line, glbl) 
+    var cond = args[0]
+    var the_yes = args[1]
+    if (cond) {
+      commands.set_cooked("__i", the_yes, glbl.scope, glbl.scope)
+    }
+  },
+  say: function (line, glbl) {
+    var args = commands.parse_and_get(line, glbl) 
+    console.log.apply(console, args)
+  },
+  if_false_goto: function (line, glbl) {
+    var args = commands.parse_and_get(line, glbl) 
+    var cond = args[0]
+    var the_yes = args[1]
+    if (!cond) {
+      commands.set_cooked("__i", the_yes, glbl.scope, glbl.scope)
+    }
+  },
+  // todo: macros
+  label: function (line, glbl) {
+    commands.set(line + " __i", glbl)
+  },
+  incr: function (line, glbl) {
+    var x = commands.get_cooked(line, glbl.scope) 
+    x = x - 0 || 0
+    commands.set_cooked(line, x + 1, glbl.scope, glbl.scope)
+  },
+  decr: function (line, glbl) {
+    var x = commands.get_cooked(line, glbl.scope) 
+    x = x - 0 || 0
+    commands.set_cooked(line, x - 1, glbl.scope, glbl.scope)
+  },
+  func: function (line, glbl) { // maybe make this in-code
+    var first_and_rest = commands.get_first_word_and_rest(line)
+    var func_name = first_and_rest.first
+    var args = first_and_rest.rest.split(" ")
+    var func = {}
+    func.type = "func"
+    glbl.scope[func_name] = func
+    func.args = args
+    func.body = []
+    func.def_scope = glbl.scope
+    glbl.scope.__current_func = func 
+    commands.handle_line = commands.handle_func
+  },
   list: function (line, glbl) {
     var list = []
     glbl.scope[line] = list
     glbl.scope.__current_list = list
     commands.handle_line = commands.handle_list
+  },
+  cat: function (line, glbl) {
+    var strs = commands.parse_and_get(line, glbl) 
+    return strs.join("")
+  },
+  parse_and_get: function (line, glbl) {
+    var items = commands.parse_line(line) 
+    var evaled = commands.get_cooked_all(items, glbl)
+    return evaled
+  },
+  get_cooked_all: function (list, glbl) {
+    var ret = []
+    for (var i = 0; i < list.length; i++) {
+      var item = list[i]
+      ret.push(commands.get_cooked(item, glbl.scope))
+    }
+    return ret;
   },
   // idea: certain type of list where you can have nested things
   hash: function (line, glbl) {
@@ -197,6 +313,14 @@ var commands = {
     var value = commands.get_cooked(words[1], glbl.scope)
     commands.setl_cooked(key, value, glbl.scope, glbl.scope) 
   },
+  as: function (line, glbl) { //raw
+    var key = line
+    commands.set_cooked(key, glbl.scope.it, glbl.scope, glbl.scope) 
+  },
+  asl: function (line, glbl) { //raw
+    var key = line
+    commands.setl_cooked(key, glbl.scope.it, glbl.scope, glbl.scope) 
+  },
   set_cooked: function (key, value, scope, original_scope) {
     if (!original_scope) {
       original_scope = scope
@@ -213,6 +337,9 @@ var commands = {
     scope[key] = value  
   },
   get_cooked: function (key, scope) {
+    if (key.slice(0, 1) == ":") {
+      return key.slice(1).replace(/\-/g, " ")
+    }
     if (key in scope) {
       return scope[key]
     } else if (scope.parent_scope){
@@ -220,22 +347,41 @@ var commands = {
     } else {
       return key;
     }
-  }
+  },
 }
 
 commands.handle_line = commands.handle_normal_line
 
-
+// todo: set scope.scope = scope
+// todo: maybe make an env = {scope: scope, i: i, lines: lines} + "?"
 var runCode = function (code, scope) {
   scope = scope || {}
   var glbl = {}
   glbl.scope = scope
   lines = code.split("\n")
-  for (var i = 0; i < lines.length; i++) {
+  glbl.scope.__i = 0
+  glbl.scope.__lines = lines
+  glbl.scope.__line = null
+  while (true) {
+
+    var i = commands.get_cooked("__i", glbl.scope)
+    var lines = commands.get_cooked("__lines", glbl.scope)
     var line = lines[i]
-    var ret = commands.handle_line(line, glbl)
+    commands.set_cooked("__line", line, glbl.scope, glbl.scope)
+    var ret = commands.handle_line(line, glbl) // you could just pass in glbl
     
+    var i = commands.get_cooked("__i", glbl.scope)
+    i = i + 1
+    commands.set_cooked("__i", i, glbl.scope, glbl.scope)
+    if (i >= lines.length) {
+      if (glbl.scope.parent_scope) {
+        glbl.scope = glbl.parent_scope // vs a stack 
+      } else {
+        break
+      }
+    }
   }
+    
   console.log(glbl)
 }
 
