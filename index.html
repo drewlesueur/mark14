@@ -19,7 +19,15 @@
 <meta name = "viewport" content = "width = device-width, initial-scale=1, user-scalable=yes">
 </head>
 <body>
-<textarea id=textarea></textarea>
+<textarea id=textarea>
+set name drew
+set age 29
+start_list apples
+   fuji
+mac
+end
+
+</textarea>
 <input type="button" value="Run" onclick="runCodeDom()"><br />
 <canvas id=canvas></canvas>
 <script>
@@ -31,7 +39,7 @@ var runCodeDom = function () {
 }
 
 var commands = {
-  handle_line: function (line, scope) {
+  handle_normal_line: function (line, glbl) {
     var firstSpace = line.indexOf(" ")
     if (firstSpace == -1) {
       firstSpace = line.length
@@ -43,15 +51,42 @@ var commands = {
     
     } else {
       var rest = line.slice(firstSpace + 1)
-      command(rest, scope) 
+      var ret = command(rest, glbl) 
+      return ret  
     }
-  
   },
-  set: function (line, scope) { //raw
+  handle_list: function (line, glbl) {
+    if (line.trim() == "end") {
+      commands.handle_line = commands.handle_normal_line
+      delete glbl.scope.__current_list
+    } else {
+      glbl.scope.__current_list.push(commands.get_cooked(line.trim(), glbl.scope))
+    }
+  },
+  start_list: function (line, glbl) {
+    var list = []
+    glbl.scope[line] = list
+    glbl.scope.__current_list = list
+    commands.handle_line = commands.handle_list
+  },
+  "end": function (line, glbl) {
+    if (glbl.scope.parent_scope) {
+      glbl.scope = glbl.scope.parent_scope
+    } else {
+      //nothing
+    }
+  },
+  start_scope: function (line, glbl) {
+    var new_scope = {}
+    glbl.scope[line] = new_scope
+    new_scope.parent_scope = scope
+    glbl.scope = new_scope
+  },
+  set: function (line, glbl) { //raw
     var words = line.split(" ")
     var key = words[0]
     var value = words[1]
-    commands.set_cooked(key, value, scope, scope) 
+    commands.set_cooked(key, value, glbl.scope, glbl.scope) 
   },
   set_cooked: function (key, value, scope, original_scope) {
     if (!original_scope) {
@@ -71,19 +106,25 @@ var commands = {
     } else if (scope.parent_scope){
       return commands.get_cooked(key, parent_scope)  
     } else {
-      return null;
+      return key;
     }
   }
 }
 
+commands.handle_line = commands.handle_normal_line
+
+
 var runCode = function (code, scope) {
   scope = scope || {}
+  var glbl = {}
+  glbl.scope = scope
   lines = code.split("\n")
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i]
-    commands.handle_line(line, scope)
+    var ret = commands.handle_line(line, glbl)
+    
   }
-  console.log(scope)
+  console.log(glbl)
 }
 
 
