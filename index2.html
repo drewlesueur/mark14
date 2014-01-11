@@ -33,6 +33,24 @@ say my_loop
 <input type="button" value="Run" onclick="runCodeDom()"><br />
 <canvas id=canvas></canvas>
 <script>
+
+var jsInc = function () {
+  var x = 0
+  //a = []
+  while (x < 1000000) {
+    //a.push[1]
+    x += 1
+  }
+}
+testInc = function () {
+  var s = Date.now(); runCodeDom();
+  console.log("m14 " + (Date.now() - s))
+
+  var s = Date.now(); jsInc();
+  console.log("js " + (Date.now() - s))
+  
+}
+
 var canvasEl = document.getElementById("canvas")
 var textareaEl = document.getElementById("textarea")
 var runCodeDom = function () {
@@ -45,6 +63,12 @@ var runCodeDom = function () {
 // todo: set scope.scope = scope
 // todo: maybe make an env = {scope: scope, i: i, lines: lines} + "?"
 var commands = {
+  set_list: function (args, scope) {
+    scope[args[1]] = []
+  },
+  pushn: function (args, scope) {
+    scope[args[1]].push(args[2] - 0)
+  },
   set: function (args, scope) {
     y = scope[args[2]]
     scope[args[1]] = y 
@@ -90,6 +114,7 @@ var runCode = function (code, scope) {
     var command = commands[line[0]]
     if (command) {
       line[0] = command
+      //line.a = command
       new_lines.push(line) 
     }
   }
@@ -97,8 +122,7 @@ var runCode = function (code, scope) {
   var len = lines.length
   while (true) {
     var line = lines[scope.__i]
-    var command = line[0]
-    var ret = command(line, scope)
+    var ret = line[0](line, scope)
     scope.it = ret
     scope.__i += 1 
     if (scope.__i === len) {
