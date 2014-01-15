@@ -66,28 +66,38 @@ var parse_commands = {
   }
 }
 
-var single_multi = {
-  func: 1, 
-  loop: 1, 
-  "if": 1,
-  "else": 1,
-  "else_if": 1,
+var root_scope = {
+  func: {type: "multi"}, 
+  loop: {type: "multi"}, 
+  "if": {type: "multi"},
+  "else": {type: "multi"},
+  "else_if": {type: "multi"},
 }
 
-// compile time
-var findScope = function () {
+var updateScopeExists = function(word, scope, scopeStack) {
+  var foundScope = findScope(word, scope, scopeStack)  
+  if (!foundScope) {
+    scope[word] = {type: "single"}
+  }
+}
 
+var findScope = function (word, scope, scopeStack) {
+  if (word in scope) {
+    return scope
+  } else if (scopeStack.length){
+    return findScope(word, scopeStack[0], scopeStack.slice(1)) 
+  } else {
+    return false
+  }
 }
 
 var compileCode = function (code, scope) {
-  scope = scope || {}
+  scope = scope || root_scope
   var lines = code.split("\n")
   var ast_stack = []
   var ast = []
 
   var scope_stack = []
-  var scope = {}
-
   var command_stack = []
   var running_command;
 
@@ -96,9 +106,13 @@ var compileCode = function (code, scope) {
     if (raw_line == "") continue;
     var line = raw_line.split(" ")
     var command = line[0]
-    var is_multi = single_multi[command]
+    var command_scope = findScope(command, scope, scope_stack)
+    var command_info = command_scope[command]
     if (command) {
-      if (command == "end") {
+      if (command == "set") {
+        var word = line[1] 
+        updateScopeExists(word, scope, scope_stack) 
+      } else if (command == "end") {
         if (running_command == "func") {
           scope = scope_stack.pop()
         }
@@ -107,7 +121,7 @@ var compileCode = function (code, scope) {
         var old_ast = ast
         ast = ast_stack.pop()
         ast.push(old_ast)
-      } else if (is_multi) {
+      } else if (command_info && command_info.type == "multi") {
         if (command == "func") {
           scope_stack.push(scope)
           scope = {}
