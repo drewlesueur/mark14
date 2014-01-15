@@ -20,6 +20,7 @@
 </head>
 <body>
 <textarea id=textarea>
+now start_time
 setn x 0
 setn endx 1000000
 label my_loop
@@ -27,6 +28,9 @@ incr x
 eq x endx
 as my_cond
 if_false_goto my_cond my_loop
+now end_time
+sub end_time start_time
+alert it
 say x
 say my_loop
 </textarea>
@@ -43,11 +47,10 @@ var jsInc = function () {
   }
 }
 testInc = function () {
-  var s = Date.now(); runCodeDom();
-  console.log("m14 " + (Date.now() - s))
-
+  //var s = Date.now(); runCodeDom();
+  //console.log("m14 " + (Date.now() - s))
   var s = Date.now(); jsInc();
-  console.log("js " + (Date.now() - s))
+  alert("js " + (Date.now() - s))
   
 }
 
@@ -55,7 +58,8 @@ var canvasEl = document.getElementById("canvas")
 var textareaEl = document.getElementById("textarea")
 var runCodeDom = function () {
   var code = textareaEl.value 
-  return runCode(code)
+  runCode(code)
+  testInc()
 }
 
 
@@ -63,6 +67,14 @@ var runCodeDom = function () {
 // todo: set scope.scope = scope
 // todo: maybe make an env = {scope: scope, i: i, lines: lines} + "?"
 var commands = {
+  now: function (args, scope) {
+    var n = Date.now();
+    scope[args[1]] = n;
+    return n
+  },
+  sub: function (args, scope) {
+    return scope[args[1]] - scope[args[2]]
+  }, 
   set_list: function (args, scope) {
     scope[args[1]] = []
   },
@@ -95,6 +107,9 @@ var commands = {
   say: function (args, scope) {
     console.log(scope[args[1]]) 
   },
+  alert: function (args, scope) {
+    alert(scope[args[1]]) 
+  },
   if_false_goto: function (args, scope) {
     if (scope[args[1]]) {
     
@@ -116,6 +131,9 @@ var runCode = function (code, scope) {
       line[0] = command
       //line.a = command
       new_lines.push(line) 
+      //if (command == commands.set) {
+      //  scope.lookup_table[commands[1]] =     
+      //}
     }
   }
   lines = new_lines;

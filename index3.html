@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+<title>mark14.5</title>
+<style>
+* {
+  font-family: Helvetica;
+  margin: 0px;
+  padding: 0px;
+}
+#textarea {
+  border: 1px solid blac;
+  width: 100%;
+  height: 300px;
+  font-size: 20px;
+  font-family: monospace;
+}
+</style>
+<meta name = "viewport" content = "width = device-width, initial-scale=1, user-scalable=yes">
+</head>
+<body>
+<textarea id=textarea>
+set x 1
+
+func greet name
+  cats name !
+end
+
+func greet name
+  set s 1
+  cats name !
+end
+
+set size 
+
+if2 size yes no
+
+func2 greet cats a !;
+
+func* greeta cats a !
+loop* 0 100 print a
+
+set b hash
+
+
+
+</textarea>
+<input type="button" value="Run" onclick="compileCodeDom()"><br />
+<canvas id=canvas></canvas>
+<script>
+
+var canvasEl = document.getElementById("canvas")
+var textareaEl = document.getElementById("textarea")
+var compileCodeDom = function () {
+  var code = textareaEl.value 
+  compileCode(code)
+}
+
+
+
+// todo: set scope.scope = scope
+// todo: maybe make an env = {scope: scope, i: i, lines: lines} + "?"
+
+var parse_commands = {
+  set: function (app, line) {
+  }
+}
+
+var single_multi = {
+  func: 1, 
+  loop: 1, 
+  "if": 1,
+  "else": 1,
+  "else_if": 1,
+}
+
+// compile time
+var findScope = function () {
+
+}
+
+var compileCode = function (code, scope) {
+  scope = scope || {}
+  var lines = code.split("\n")
+  var ast_stack = []
+  var ast = []
+
+  var scope_stack = []
+  var scope = {}
+
+  var command_stack = []
+  var running_command;
+
+  for (var i = 0; i < lines.length; i++) {
+    var raw_line = lines[i].trim()
+    if (raw_line == "") continue;
+    var line = raw_line.split(" ")
+    var command = line[0]
+    var is_multi = single_multi[command]
+    if (command) {
+      if (command == "end") {
+        if (running_command == "func") {
+          scope = scope_stack.pop()
+        }
+
+        running_command = command_stack.pop()
+        var old_ast = ast
+        ast = ast_stack.pop()
+        ast.push(old_ast)
+      } else if (is_multi) {
+        if (command == "func") {
+          scope_stack.push(scope)
+          scope = {}
+        }
+        ast_stack.push(ast)
+        ast = [line[0], line.slice(1)]
+
+        command_stack.push(running_command)
+        running_command = command
+      } else {
+        ast.push(line)
+      }
+    } else {
+        ast.push(line)
+      // func call?
+    }
+  }
+
+  console.log(ast)
+}
+
+
+
+</script>
+</body>
+</html>
+
