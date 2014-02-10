@@ -22,6 +22,10 @@
 <textarea id=textarea>
 set x 1
 
+if lt x 100
+ print lt100
+end
+
 func greet name
   cats name !
 end
@@ -69,9 +73,9 @@ var parse_commands = {
 var root_scope = {
   func: {type: "multi"}, 
   loop: {type: "multi"}, 
-  "if": {type: "multi"},
-  "else": {type: "multi"},
-  "else_if": {type: "multi"},
+  "if": {type: "multi_glue_start"},
+  "else": {type: "multi_glue"},
+  "else_if": {type: "multi_glue"},
 }
 
 var updateScopeExists = function(word, scope, scopeStack) {
@@ -99,7 +103,9 @@ var compileCode = function (code, scope) {
 
   var scope_stack = []
   var command_stack = []
+  var command_info_stack = []
   var running_command;
+  var running_command_info;
 
   for (var i = 0; i < lines.length; i++) {
     var raw_line = lines[i].trim()
@@ -107,13 +113,24 @@ var compileCode = function (code, scope) {
     var line = raw_line.split(" ")
     var command = line[0]
     var command_scope = findScope(command, scope, scope_stack)
-    var command_info = command_scope[command]
+    var command_info = command_scope && command_scope[command]
     if (command) {
       if (command == "set") {
         var word = line[1] 
         updateScopeExists(word, scope, scope_stack) 
+        ast.push(line)
+      } else if (command == "if") {
+        ast_stack.push(ast)
+        ast = [line[0], line.slice(1)]
+        
+        command_stack.push(running_command)
+        running_command = command
+      
+        command_info_stack.push(running_command_info)
+        running_command_info = command_info
+        
       } else if (command == "end") {
-        if (running_command == "func") {
+        if (running_command == "func") { //or if running_command_info.new_scope
           scope = scope_stack.pop()
         }
 
@@ -148,4 +165,22 @@ var compileCode = function (code, scope) {
 </script>
 </body>
 </html>
+<!--focusing on speed of final execution in js environment. forgoing raw goto handling :( -->
+<!--
 
+// another if else if else if else type
+mapSeries
+then select 20 a
+then select 30 a
+finally startk
+   
+mapseries
+  getStuff
+and
+  getOtherStuff
+and
+  get even nore
+finally
+  set err a
+
+-->
